@@ -32,37 +32,6 @@ resource storageAccountTable 'Microsoft.Storage/storageAccounts/tableServices/ta
   name: table
   parent: storageAccountTableService
 }]
-resource redisCache 'Microsoft.Cache/redis@2021-06-01' = {
-  name: '${defaultResourceName}-cache'
-  location: location
-  properties: {
-    sku: {
-      name: 'Standard'
-      capacity: 1
-      family: 'C'
-    }
-    enableNonSslPort: false
-    publicNetworkAccess: 'Enabled'
-  }
-}
-resource webPubSub 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
-  name: '${defaultResourceName}-pubsub'
-  location: location
-  sku: {
-    capacity: 1
-    tier: 'Basic'
-    name: 'Standard_S1'
-  }
-  properties: {
-    publicNetworkAccess: 'Enabled'
-  }
-  resource hub 'hubs' = {
-    name: 'pollstar'
-    properties: {
-      anonymousConnectPolicy: 'allow'
-    }
-  }
-}
 
 resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
   name: '${defaultResourceName}-aca'
@@ -79,15 +48,6 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
         {
           name: 'storage-account-secret'
           value: listKeys(storageAccount.id, storageAccount.apiVersion).keys[0].value
-        }
-        {
-          name: 'redis-cache-secret'
-          value: listKeys(redisCache.id, redisCache.apiVersion).primaryKey
-        }
-        {
-          name: 'web-pubsub-connectionstring'
-          value: webPubSub.listKeys().primaryConnectionString
-
         }
         {
           name: 'application-insights-connectionstring'
@@ -110,21 +70,13 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
     template: {
       containers: [
         {
-          image: 'docker.io/nikneem/pollstar-api:${containerVersion}'
-          name: 'pollstar-api'
+          image: 'pollstarinttestneuacr.azurecr.io/pollstar-polls-api:${containerVersion}'
+          name: 'pollstar-polls-api'
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
           }
           env: [
-            {
-              name: 'Cache__Secret'
-              secretRef: 'redis-cache-secret'
-            }
-            {
-              name: 'Cache__Endpoint'
-              value: '${redisCache.name}.redis.cache.windows.net'
-            }
             {
               name: 'Azure__StorageAccount'
               value: storageAccount.name
@@ -132,14 +84,6 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
             {
               name: 'Azure__StorageKey'
               secretRef: 'storage-account-secret'
-            }
-            {
-              name: 'Azure__WebPubSub'
-              secretRef: 'web-pubsub-connectionstring'
-            }
-            {
-              name: 'Azure__PollStarHub'
-              value: 'pollstar'
             }
             {
               name: 'APPLICATION_INSIGHTS_CONNECTIONSTRING'
