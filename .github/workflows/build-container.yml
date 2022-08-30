@@ -8,9 +8,10 @@ env:
   IMAGE_NAME: pollstar-polls-api
 
 jobs:
-  build:
+  versionize:
     runs-on: ubuntu-latest
-
+    outputs:
+      semver: ${{ steps.gitversion.outputs.MajorMinorPatch }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -26,18 +27,26 @@ jobs:
         with:
           useConfigFile: true
 
-      - name: "Push to Azure Container Registry"
+  build:
+    runs-on: ubuntu-latest
+    needs: versionize
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build container images
+        working-directory: src
+        run: |
+          docker build . --file Dockerfile --tag ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:${{needs.versionize.outputs.semver}}
+          docker build . --file Dockerfile --tag ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:latest
+      - name: Login to ACR
         uses: azure/docker-login@v1
         with:
           login-server: ${{ secrets.ACR_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
-      - name: Build & Push
+      - name: Push container images
         working-directory: src
         run: |
-          docker build . --file Dockerfile --tag ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:${{ steps.gitversion.outputs.MajorMinorPatch }}
-          docker build . --file Dockerfile --tag ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:latest
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:${{ steps.gitversion.outputs.MajorMinorPatch }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:${{needs.versionize.outputs.semver}}
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_NAME:latest
 
   publish-bicep:
@@ -55,7 +64,7 @@ jobs:
           path: infrastructure/*.json
 
   infrastructure-incremental-test:
-    needs: [build, publish-bicep]
+    needs: [build, publish-bicep, versionize]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -71,17 +80,8 @@ jobs:
         uses: azure/login@v1.4.0
         with:
           creds: ${{ secrets.AZURE_TEST }}
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.7
-        with:
-          versionSpec: "5.x"
-      - name: Determine Version
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.7
-        with:
-          useConfigFile: true
       - name: Deploy Infrastructure
         id: arm
         uses: Azure/cli@1.0.4
         with:
-          inlineScript: az deployment sub create --name pollstar-votes-api  --location northeurope --template-file ./infrastructure/main.json --parameters ./infrastructure/params.test.json --parameters containerVersion=${{ steps.gitversion.outputs.MajorMinorPatch }}
+          inlineScript: az deployment sub create --name $IMAGE_NAME  --location northeurope --template-file ./infrastructure/main.json --parameters ./infrastructure/params.test.json --parameters containerVersion=${{needs.versionize.outputs.semver}}

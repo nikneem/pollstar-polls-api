@@ -15,15 +15,13 @@ namespace PollStar.Polls.Repositories;
 public class PollStarPollsRepository : IPollStarPollsRepository
 {
     private readonly TableClient _tableClient;
-    private readonly ICacheClient _cacheClient;
     private const string TableName = "polls";
     private const string PartitionKey = "poll";
 
     public async Task<List<IPoll>> GetListAsync(Guid sessionId)
     {
         var redisCacheKey = $"polls:list:{sessionId}";
-        await _cacheClient.InvalidateAsync(redisCacheKey);
-        var pollsList = await _cacheClient.GetOrInitializeAsync(() => GetPollsBySessionIdAsync(sessionId), redisCacheKey);
+        var pollsList = await GetPollsBySessionIdAsync(sessionId); //_cacheClient.GetOrInitializeAsync(() =>, redisCacheKey);
         return pollsList.OrderBy(p => p.DisplayOrder).ToList();
     }
 
@@ -31,12 +29,12 @@ public class PollStarPollsRepository : IPollStarPollsRepository
     {
         var pollOptions = new List<IPollOption>();
         var redisKeyPollOptions = $"polls:options:{pollId}";
-        var pollOptionEntities = await _cacheClient.GetOrInitializeAsync(() => GetPollOptionsByPollIdAsync(pollId), redisKeyPollOptions);
+        var pollOptionEntities = await GetPollOptionsByPollIdAsync(pollId); //_cacheClient.GetOrInitializeAsync(() => , redisKeyPollOptions);
         pollOptions.AddRange(pollOptionEntities.Select(po =>
             new PollOption(Guid.Parse(po.RowKey), po.Name, po.Description, po.DisplayOrder)));
 
         var redisCacheKeyPoll = $"polls:details:{pollId}";
-        var entity = await _cacheClient.GetOrInitializeAsync(() => GetPollDetailsByPollIdAsync(pollId), redisCacheKeyPoll);
+        var entity = await GetPollDetailsByPollIdAsync(pollId); //_cacheClient.GetOrInitializeAsync(() =>, redisCacheKeyPoll);
 
         return new Poll(
             Guid.Parse(entity.RowKey),
@@ -60,9 +58,9 @@ public class PollStarPollsRepository : IPollStarPollsRepository
             }
             var response = await _tableClient.SubmitTransactionAsync(actions);
 
-            await _cacheClient.InvalidateAsync($"polls:list:{domainModel.SessionId}");
-            await _cacheClient.InvalidateAsync($"polls:options:{domainModel.Id}");
-            await _cacheClient.InvalidateAsync($"polls:details:{domainModel.Id}");
+            //await _cacheClient.InvalidateAsync($"polls:list:{domainModel.SessionId}");
+            //await _cacheClient.InvalidateAsync($"polls:options:{domainModel.Id}");
+            //await _cacheClient.InvalidateAsync($"polls:details:{domainModel.Id}");
 
             return response.Value.All(r => !r.IsError);
         }
@@ -78,8 +76,8 @@ public class PollStarPollsRepository : IPollStarPollsRepository
             {
                 var pollEntity = ToTableEntity(domainModel);
                 await _tableClient.UpdateEntityAsync(pollEntity, ETag.All, TableUpdateMode.Replace);
-                await _cacheClient.InvalidateAsync($"polls:list:{domainModel.SessionId}");
-                await _cacheClient.InvalidateAsync($"polls:details:{domainModel.Id}");
+                //await _cacheClient.InvalidateAsync($"polls:list:{domainModel.SessionId}");
+                //await _cacheClient.InvalidateAsync($"polls:details:{domainModel.Id}");
             }
 
             foreach (var option in domainModel.Options)
@@ -104,7 +102,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
             if (actions.Count > 0)
             {
                 var response = await _tableClient.SubmitTransactionAsync(actions);
-                await _cacheClient.InvalidateAsync($"polls:options:{domainModel.Id}");
+                //await _cacheClient.InvalidateAsync($"polls:options:{domainModel.Id}");
                 return response.Value.All(r => !r.IsError);
             }
 
@@ -200,9 +198,8 @@ public class PollStarPollsRepository : IPollStarPollsRepository
         };
     }
 
-    public PollStarPollsRepository( ICacheClientFactory cacheClientFactory, IOptions<AzureConfiguration> options)
+    public PollStarPollsRepository(IOptions<AzureConfiguration> options)
     {
-        _cacheClient = cacheClientFactory.CreateClient(Constants.DefaultCacheClientName);
         var accountName = options.Value.StorageAccount;
         var accountKey = options.Value.StorageKey;
         var storageUri = new Uri($"https://{accountName}.table.core.windows.net");

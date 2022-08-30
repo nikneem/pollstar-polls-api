@@ -1,29 +1,13 @@
 using PollStar.Core.Configuration;
+using PollStar.Core.Exceptions;
 using PollStar.Polls;
 
 const string defaultCorsPolicyName = "default_cors";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-//var environmentVariables = Environment.GetEnvironmentVariables();
-//var config = new AzureConfiguration();
-//builder.Configuration.GetSection(AzureConfiguration.SectionName).Bind(config);
-//if (!environmentVariables.Contains(EnvironmentVariableName.AzureStorageAccountName))
-//{
-//    Environment.SetEnvironmentVariable(EnvironmentVariableName.AzureStorageAccountName, config.StorageAccount);
-//}
-//if (!environmentVariables.Contains(EnvironmentVariableName.AzureStorageAccountKey))
-//{
-//    Environment.SetEnvironmentVariable(EnvironmentVariableName.AzureStorageAccountKey, config.StorageKey);
-//}
-
-builder.Services.Configure<AzureConfiguration>(
-    builder.Configuration.GetSection(AzureConfiguration.SectionName));
-
+builder.Services.AddPollStarCore(builder.Configuration);
 builder.Services.AddPollStarPolls();
-
-builder.Services.AddHealthChecks();
 
 builder.Services.AddCors(options =>
 {
@@ -41,8 +25,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddApplicationInsightsTelemetry();
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddControllers(options => { options.Filters.Add(typeof(PollStarExceptionsFilter)); });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>b895a25a-5fd1-4f56-9b9f-7282977a7f7c</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,11 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Data.Tables" Version="12.6.0" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.6.1" />
     <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.0.0" />
     <PackageReference Include="HexMaster.DomainDrivenDesign" Version="1.0.2" />
     <PackageReference Include="HexMaster.RedisCache" Version="0.1.6" />
-    <PackageReference Include="PollStar.Core" Version="0.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="6.0.8" />
+    <PackageReference Include="PollStar.Core" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>
