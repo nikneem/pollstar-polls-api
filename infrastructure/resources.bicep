@@ -102,8 +102,8 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 2
-        maxReplicas: 10
+        minReplicas: 0
+        maxReplicas: 6
       }
     }
   }
