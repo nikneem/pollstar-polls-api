@@ -32,12 +32,16 @@ namespace PollStar.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> List([FromQuery] Guid sessionId)
+        public async Task<IActionResult> List()
         {
             try
             {
-                var service = await _service.GetPollsListAsync(sessionId);
-                return Ok(service);
+                var sessionIdValue = Request.Query["session-id"];
+                if (sessionIdValue.Count == 1 && Guid.TryParse(sessionIdValue.ToString(), out Guid sessionId))
+                {
+                    var service = await _service.GetPollsListAsync(sessionId);
+                    return Ok(service);
+                }
             }
             catch (PollStarPollException psEx)
             {
@@ -68,8 +72,6 @@ namespace PollStar.API.Controllers
 
             return BadRequest();
         }
-
-
 
         [HttpGet("{id}/activate")]
         public async Task<IActionResult> Activate(Guid id)
