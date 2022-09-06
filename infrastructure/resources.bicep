@@ -6,6 +6,7 @@ param containerVersion string
 param integrationResourceGroupName string
 param containerAppEnvironmentResourceName string
 param applicationInsightsResourceName string
+param webPubSubResourceName string
 
 param containerPort int = 80
 param containerAppName string = 'pollstar-polls-api'
@@ -16,6 +17,10 @@ resource containerAppEnvironments 'Microsoft.App/managedEnvironments@2022-03-01'
 }
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: applicationInsightsResourceName
+  scope: resourceGroup(integrationResourceGroupName)
+}
+resource webPubSub 'Microsoft.SignalRService/webPubSub@2021-10-01' existing = {
+  name: webPubSubResourceName
   scope: resourceGroup(integrationResourceGroupName)
 }
 
@@ -56,6 +61,11 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
           name: 'application-insights-connectionstring'
           value: applicationInsights.properties.ConnectionString
         }
+        {
+          name: 'web-pubsub-connectionstring'
+          value: webPubSub.listKeys().primaryConnectionString
+        }
+
       ]
       ingress: {
         external: true
@@ -93,6 +103,15 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
               name: 'Azure__StorageKey'
               secretRef: 'storage-account-secret'
             }
+            {
+              name: 'Azure__WebPubSub'
+              secretRef: 'web-pubsub-connectionstring'
+            }
+            {
+              name: 'Azure__PollStarHub'
+              value: 'pollstar'
+            }
+
             {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               secretRef: 'application-insights-connectionstring'
