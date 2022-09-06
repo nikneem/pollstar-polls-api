@@ -65,10 +65,9 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
           name: 'web-pubsub-connectionstring'
           value: webPubSub.listKeys().primaryConnectionString
         }
-
       ]
       ingress: {
-        external: true
+        external: false
         targetPort: 80
         transport: 'auto'
         allowInsecure: false
@@ -111,7 +110,6 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
               name: 'Azure__PollStarHub'
               value: 'pollstar'
             }
-
             {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               secretRef: 'application-insights-connectionstring'
