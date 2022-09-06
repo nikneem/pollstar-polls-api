@@ -10,6 +10,31 @@ public class PollOption : DomainModel<Guid>, IPollOption
     public string Name { get; private set; }
     public string? Description { get; private set; }
 
+    public void SetName(string value)
+    {
+        if (IsNullOrWhiteSpace(value))
+        {
+            // Error
+        }
+
+        SetState(TrackingState.Touched);
+        if (!Equals(Name, value))
+        {
+            Name = value;
+            SetState(TrackingState.Modified);
+        }
+    }
+
+    public void SetDescription(string? value)
+    {
+        SetState(TrackingState.Touched);
+        if (!Equals(Description, value))
+        {
+            Description = value;
+            SetState(TrackingState.Modified);
+        }
+    }
+
     public void Delete()
     {
         SetState(TrackingState.Deleted);

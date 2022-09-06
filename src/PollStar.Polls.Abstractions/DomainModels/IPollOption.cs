@@ -10,5 +10,7 @@ public interface IPollOption
     int DisplayOrder { get; }
     Guid Id { get; }
     TrackingState TrackingState { get; }
+    void SetName(string dtoName);
+    void SetDescription(string? dtoDescription);
     void Delete();
 }

@@ -8,5 +8,6 @@ public interface IPollStarPollsRepository
     Task<IPoll> GetAsync(Guid pollId);
     Task<bool> CreateAsync(IPoll domainModel);
     Task<bool> UpdateAsync(IPoll domainModel);
+    Task<bool> DeleteAsync(Guid id);
     Task<bool> DeactivateAll(Guid sessionId);
 }

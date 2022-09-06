@@ -1,5 +1,6 @@
 ﻿using Azure.Core;
 using Azure.Messaging.WebPubSub;
+using HexMaster.DomainDrivenDesign.ChangeTracking;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -38,7 +39,7 @@ public class PollStarPollsService : IPollStarPollsService
         return pollsList;
     }
 
-    public async Task<PollDto> GetPollAsync(Guid pollId)
+    public async Task<PollDto> GetPollDetailsAsync(Guid pollId)
     {
         _logger.LogInformation("Fetching poll details");
         var pollDomainModel = await _repository.GetAsync(pollId);
@@ -60,6 +61,43 @@ public class PollStarPollsService : IPollStarPollsService
 
         throw new PollStarPollException(PollStarPollErrorCode.PollPersistenceFailed, 
             "Failed to create poll in data persistence store");
+    }
+
+    public async Task<PollDto> UpdatePollAsync(Guid pollId, PollDto dto)
+    {
+        var poll = await _repository.GetAsync(pollId);
+        poll.SetName(dto.Name);
+        poll.SetDescription(dto.Description);
+        foreach (var dtoOption in dto.Options)
+        {
+            var domainOption = poll.Options.FirstOrDefault(dm => dm.Id.Equals(dtoOption.Id));
+            if (domainOption != null)
+            {
+                domainOption.SetName(dto.Name);
+                domainOption.SetDescription(dto.Description);
+            }
+            if (domainOption == null)
+            {
+                poll.AddOption(new PollOption(dtoOption.Name, dtoOption.Description, poll.Options.Count));
+            }
+        }
+
+        foreach (var existingOption in poll.Options.Where(x => x.TrackingState == TrackingState.Pristine))
+        {
+            existingOption.Delete();
+        }
+        if (await _repository.UpdateAsync(poll))
+        {
+            return ToPollDto(poll);
+        }
+
+        throw new PollStarPollException(PollStarPollErrorCode.PollPersistenceFailed,
+            "Failed to create poll in data persistence store");
+    }
+
+    public Task<bool> DeletePollAsync(Guid pollId)
+    {
+        return _repository.DeleteAsync(pollId);
     }
 
     public async Task<PollDto?> ActivatePollAsync(Guid pollId)

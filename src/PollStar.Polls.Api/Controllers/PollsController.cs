@@ -12,25 +12,6 @@ namespace PollStar.API.Controllers
     {
         private readonly IPollStarPollsService _service;
 
-        [HttpPost]
-        public async Task<IActionResult> Post(CreatePollDto dto)
-        {
-            try
-            {
-                var service = await _service.CreatePollAsync(dto);
-                return Ok(service);
-            }
-            catch (PollStarPollException psEx)
-            {
-                if (psEx.ErrorCode == PollStarPollErrorCode.PollNotFound)
-                {
-                    return new NotFoundResult();
-                }
-            }
-
-            return BadRequest();
-        }
-
         [HttpGet]
         public async Task<IActionResult> List()
         {
@@ -59,7 +40,7 @@ namespace PollStar.API.Controllers
         {
             try
             {
-                var service = await _service.GetPollAsync(id);
+                var service = await _service.GetPollDetailsAsync(id);
                 return Ok(service);
             }
             catch (PollStarPollException psEx)
@@ -72,6 +53,65 @@ namespace PollStar.API.Controllers
 
             return BadRequest();
         }
+
+        [HttpPost]
+        public async Task<IActionResult> Post(CreatePollDto dto)
+        {
+            try
+            {
+                var service = await _service.CreatePollAsync(dto);
+                return Ok(service);
+            }
+            catch (PollStarPollException psEx)
+            {
+                if (psEx.ErrorCode == PollStarPollErrorCode.PollNotFound)
+                {
+                    return new NotFoundResult();
+                }
+            }
+
+            return BadRequest();
+        }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Post(Guid id, PollDto dto)
+        {
+            try
+            {
+                var service = await _service.UpdatePollAsync(id, dto);
+                return Ok(service);
+            }
+            catch (PollStarPollException psEx)
+            {
+                if (psEx.ErrorCode == PollStarPollErrorCode.PollNotFound)
+                {
+                    return new NotFoundResult();
+                }
+            }
+
+            return BadRequest();
+        }
+
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                var deleted = await _service.DeletePollAsync(id);
+                return deleted ? Ok() : BadRequest();
+            }
+            catch (PollStarPollException psEx)
+            {
+                if (psEx.ErrorCode == PollStarPollErrorCode.PollNotFound)
+                {
+                    return new NotFoundResult();
+                }
+            }
+
+            return BadRequest();
+        }
+
+
 
         [HttpGet("{id}/activate")]
         public async Task<IActionResult> Activate(Guid id)

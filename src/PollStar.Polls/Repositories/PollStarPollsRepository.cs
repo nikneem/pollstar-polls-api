@@ -112,6 +112,12 @@ public class PollStarPollsRepository : IPollStarPollsRepository
         return false;
     }
 
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var response = await _tableClient.DeleteEntityAsync(PartitionKey, id.ToString());
+        return !response.IsError;
+    }
+
     public async Task<bool> DeactivateAll(Guid sessionId)
     {
         var pollsQuery = _tableClient.QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}' and {nameof(PollTableEntity.IsActive)} eq true");
