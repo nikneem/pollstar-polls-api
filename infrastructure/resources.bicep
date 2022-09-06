@@ -7,6 +7,9 @@ param integrationResourceGroupName string
 param containerAppEnvironmentResourceName string
 param applicationInsightsResourceName string
 
+param containerPort int = 80
+param containerAppName string = 'pollstar-polls-api'
+
 resource containerAppEnvironments 'Microsoft.App/managedEnvironments@2022-03-01' existing = {
   name: containerAppEnvironmentResourceName
   scope: resourceGroup(integrationResourceGroupName)
@@ -66,12 +69,17 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
           }
         ]
       }
+      dapr: {
+        enabled: true
+        appPort: containerPort
+        appId: containerAppName
+      }
     }
     template: {
       containers: [
         {
-          image: 'pollstarinttestneuacr.azurecr.io/pollstar-polls-api:${containerVersion}'
-          name: 'pollstar-polls-api'
+          image: 'pollstarinttestneuacr.azurecr.io/${containerAppName}:${containerVersion}'
+          name: containerAppName
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
