@@ -73,8 +73,8 @@ public class PollStarPollsService : IPollStarPollsService
             var domainOption = poll.Options.FirstOrDefault(dm => dm.Id.Equals(dtoOption.Id));
             if (domainOption != null)
             {
-                domainOption.SetName(dto.Name);
-                domainOption.SetDescription(dto.Description);
+                domainOption.SetName(dtoOption.Name);
+                domainOption.SetDescription(dtoOption.Description);
             }
             if (domainOption == null)
             {
@@ -154,7 +154,7 @@ public class PollStarPollsService : IPollStarPollsService
             DisplayOrder = po.DisplayOrder
         }));
 
-        return new PollDto(poll.Name)
+        return new PollDto
         {
             Id = poll.Id,
             Name = poll.Name,

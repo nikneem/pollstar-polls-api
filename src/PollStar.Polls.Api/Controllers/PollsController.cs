@@ -4,7 +4,7 @@ using PollStar.Polls.Abstractions.Services;
 using PollStar.Polls.ErrorCodes;
 using PollStar.Polls.Exceptions;
 
-namespace PollStar.API.Controllers
+namespace PollStar.Polls.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -74,7 +74,7 @@ namespace PollStar.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Post(Guid id, PollDto dto)
+        public async Task<IActionResult> Put(Guid id, PollDto dto)
         {
             try
             {
@@ -111,8 +111,6 @@ namespace PollStar.API.Controllers
             return BadRequest();
         }
 
-
-
         [HttpGet("{id}/activate")]
         public async Task<IActionResult> Activate(Guid id)
         {
@@ -131,25 +129,6 @@ namespace PollStar.API.Controllers
 
             return BadRequest();
         }
-
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> Put(Guid id,CreatePollDto dto)
-        //{
-        //    try
-        //    {
-        //        var service = await _service.(dto);
-        //        return Ok(service);
-        //    }
-        //    catch (PollStarPollException psEx)
-        //    {
-        //        if (psEx.ErrorCode == PollStarPollErrorCode.PollNotFound)
-        //        {
-        //            return new NotFoundResult();
-        //        }
-        //    }
-
-        //    return BadRequest();
-        //}
 
         public PollsController(IPollStarPollsService service)
         {
