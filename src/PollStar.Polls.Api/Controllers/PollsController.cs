@@ -11,18 +11,21 @@ namespace PollStar.Polls.Api.Controllers
     public class PollsController : ControllerBase
     {
         private readonly IPollStarPollsService _service;
+        private readonly ILogger<PollsController> _logger;
 
         [HttpGet]
         public async Task<IActionResult> List()
         {
             try
             {
-                var sessionIdValue = Request.Query["session-id"];
+                var sessionIdValue = Request.Query["session"];
                 if (sessionIdValue.Count == 1 && Guid.TryParse(sessionIdValue.ToString(), out Guid sessionId))
                 {
                     var service = await _service.GetPollsListAsync(sessionId);
                     return Ok(service);
                 }
+
+                _logger.LogWarning("Could not process request because of missing querystring parameter 'session'");
             }
             catch (PollStarPollException psEx)
             {
@@ -130,9 +133,10 @@ namespace PollStar.Polls.Api.Controllers
             return BadRequest();
         }
 
-        public PollsController(IPollStarPollsService service)
+        public PollsController(IPollStarPollsService service, ILogger<PollsController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
     }
