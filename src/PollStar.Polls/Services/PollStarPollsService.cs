@@ -39,6 +39,18 @@ public class PollStarPollsService : IPollStarPollsService
         return pollsList;
     }
 
+    public async Task<PollDto?> GetActivePollAsync(Guid sessionId)
+    {
+        _logger.LogInformation("Fetching active poll details");
+        var activePoll = await _repository.GetActiveAsync(sessionId);
+        if (activePoll != null)
+        {
+            return ToPollDto(activePoll);
+        }
+
+        return null;
+    }
+
     public async Task<PollDto> GetPollDetailsAsync(Guid pollId)
     {
         _logger.LogInformation("Fetching poll details");

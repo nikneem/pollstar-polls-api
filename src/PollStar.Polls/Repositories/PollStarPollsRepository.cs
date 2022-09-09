@@ -25,6 +25,46 @@ public class PollStarPollsRepository : IPollStarPollsRepository
         return pollsList.OrderBy(p => p.DisplayOrder).ToList();
     }
 
+    public async Task<IPoll?> GetActiveAsync(Guid sessionId)
+    {
+        var pollsQuery = _tableClient
+            .QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}' and {nameof(PollTableEntity.IsActive)} eq true");
+        PollTableEntity activePollEntity = null;
+        await foreach (var page in pollsQuery.AsPages())
+        {
+            foreach (var pollEntity in page.Values)
+            {
+                activePollEntity = pollEntity;
+                break;
+            }
+
+            if (activePollEntity != null)
+            {
+                break;
+            }
+        }
+
+        if (activePollEntity != null)
+        {
+            var pollOptions = new List<IPollOption>();
+
+            var pollId = Guid.Parse(activePollEntity.RowKey);
+            var pollOptionEntities = await GetPollOptionsByPollIdAsync(pollId); //_cacheClient.GetOrInitializeAsync(() => , redisKeyPollOptions);
+            pollOptions.AddRange(pollOptionEntities.Select(po =>
+                new PollOption(Guid.Parse(po.RowKey), po.Name, po.Description, po.DisplayOrder)));
+            return new Poll(
+                Guid.Parse(activePollEntity.RowKey),
+                Guid.Parse(activePollEntity.SessionId),
+                activePollEntity.Name,
+                activePollEntity.Description,
+                activePollEntity.DisplayOrder,
+                pollOptions,
+                activePollEntity.IsActive);
+        }
+
+        return null;
+    }
+
     public async Task<IPoll> GetAsync(Guid pollId)
     {
         var pollOptions = new List<IPollOption>();

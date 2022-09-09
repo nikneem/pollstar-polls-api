@@ -56,6 +56,25 @@ namespace PollStar.Polls.Api.Controllers
 
             return BadRequest();
         }
+        [HttpGet("{id}/active")]
+        public async Task<IActionResult> GetActive(Guid id)
+        {
+            try
+            {
+                var activePollDto = await _service.GetActivePollAsync(id);
+                return activePollDto != null ? Ok(activePollDto) : NotFound();
+            }
+            catch (PollStarPollException psEx)
+            {
+                if (psEx.ErrorCode == PollStarPollErrorCode.PollNotFound)
+                {
+                    return new NotFoundResult();
+                }
+            }
+
+            return BadRequest();
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> Post(CreatePollDto dto)
