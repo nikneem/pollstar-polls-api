@@ -17,8 +17,8 @@
     <PackageReference Include="Azure.Messaging.WebPubSub" Version="1.0.0" />
     <PackageReference Include="HexMaster.DomainDrivenDesign" Version="1.0.2" />
     <PackageReference Include="HexMaster.RedisCache" Version="0.1.6" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="6.0.8" />
-    <PackageReference Include="PollStar.Core" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="6.0.9" />
+    <PackageReference Include="PollStar.Core" Version="1.0.5" />
   </ItemGroup>
 
   <ItemGroup>
