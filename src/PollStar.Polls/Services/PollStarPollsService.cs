@@ -60,6 +60,7 @@ public class PollStarPollsService : IPollStarPollsService
 
     public async Task<PollDto> CreatePollAsync(CreatePollDto dto)
     {
+        _logger.LogInformation("Creating a new poll");
         var poll = new Poll(dto.SessionId, dto.Name);
         poll.SetDescription(dto.Description);
         foreach (var option in dto.Options)
@@ -68,6 +69,7 @@ public class PollStarPollsService : IPollStarPollsService
         }
         if (await _repository.CreateAsync(poll))
         {
+            _logger.LogInformation("New poll succesfully created");
             return ToPollDto(poll);
         }
 
