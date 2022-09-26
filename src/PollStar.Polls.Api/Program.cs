@@ -42,7 +42,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(defaultCorsPolicyName);
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
 app.UseEndpoints(ep =>
