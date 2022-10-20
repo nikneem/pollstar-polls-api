@@ -40,5 +40,6 @@ module resourcesModule 'resources.bicep' = {
     containerAppEnvironmentResourceName: containerAppEnvironmentName
     applicationInsightsResourceName: applicationInsightsResourceName
     webPubSubResourceName: webPubSubResourceName
+    environmentName: environmentName
   }
 }
