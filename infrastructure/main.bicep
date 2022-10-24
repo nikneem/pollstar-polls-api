@@ -11,11 +11,11 @@ param environmentName string
 param location string = deployment().location
 param locationAbbreviation string
 param containerVersion string
+param developersGroup string
 
 var integrationResourceGroupName = toLower('pollstar-int-${environmentName}-${locationAbbreviation}')
 var containerAppEnvironmentName = '${integrationResourceGroupName}-env'
-var applicationInsightsResourceName = '${integrationResourceGroupName}-ai'
-var webPubSubResourceName = '${integrationResourceGroupName}-pubsub'
+var azureAppConfigurationName = '${integrationResourceGroupName}-cfg'
 
 var apiResourceGroupName = toLower('${systemName}-${environmentName}-${locationAbbreviation}')
 
@@ -38,8 +38,8 @@ module resourcesModule 'resources.bicep' = {
     containerVersion: containerVersion
     integrationResourceGroupName: integrationResourceGroupName
     containerAppEnvironmentResourceName: containerAppEnvironmentName
-    applicationInsightsResourceName: applicationInsightsResourceName
-    webPubSubResourceName: webPubSubResourceName
     environmentName: environmentName
+    developersGroup: developersGroup
+    azureAppConfigurationName: azureAppConfigurationName
   }
 }

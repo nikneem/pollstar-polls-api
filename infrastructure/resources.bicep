@@ -5,22 +5,27 @@ param containerVersion string
 param environmentName string
 param integrationResourceGroupName string
 param containerAppEnvironmentResourceName string
-param applicationInsightsResourceName string
-param webPubSubResourceName string
+param azureAppConfigurationName string
+param developersGroup string
 
 param containerPort int = 80
 param containerAppName string = 'pollstar-polls-api'
+
+resource configurationDataReaderRole 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+  scope: resourceGroup()
+  name: '516239f1-63e1-4d78-a4de-a74fb236a071'
+}
+resource storageAccountDataContributorRole 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+  scope: resourceGroup()
+  name: '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+}
 
 resource containerAppEnvironments 'Microsoft.App/managedEnvironments@2022-03-01' existing = {
   name: containerAppEnvironmentResourceName
   scope: resourceGroup(integrationResourceGroupName)
 }
-resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
-  name: applicationInsightsResourceName
-  scope: resourceGroup(integrationResourceGroupName)
-}
-resource webPubSub 'Microsoft.SignalRService/webPubSub@2021-10-01' existing = {
-  name: webPubSubResourceName
+resource appConfiguration 'Microsoft.AppConfiguration/configurationStores@2022-05-01' existing = {
+  name: azureAppConfigurationName
   scope: resourceGroup(integrationResourceGroupName)
 }
 
@@ -52,20 +57,7 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
 
     configuration: {
       activeRevisionsMode: 'Single'
-      secrets: [
-        {
-          name: 'storage-account-secret'
-          value: listKeys(storageAccount.id, storageAccount.apiVersion).keys[0].value
-        }
-        {
-          name: 'application-insights-connectionstring'
-          value: applicationInsights.properties.ConnectionString
-        }
-        {
-          name: 'web-pubsub-connectionstring'
-          value: webPubSub.listKeys().primaryConnectionString
-        }
-      ]
+      secrets: []
       ingress: {
         external: false
         targetPort: 80
@@ -99,20 +91,8 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
               value: storageAccount.name
             }
             {
-              name: 'Azure__StorageKey'
-              secretRef: 'storage-account-secret'
-            }
-            {
-              name: 'Azure__WebPubSub'
-              secretRef: 'web-pubsub-connectionstring'
-            }
-            {
-              name: 'Azure__PollStarHub'
-              value: 'pollstar'
-            }
-            {
-              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-              secretRef: 'application-insights-connectionstring'
+              name: 'AzureAppConfiguration'
+              value: appConfiguration.properties.endpoint
             }
           ]
 
@@ -133,5 +113,31 @@ resource apiContainerApp 'Microsoft.App/containerApps@2022-03-01' = {
         ]
       }
     }
+  }
+}
+
+module configurationReaderRoleAssignment 'roleAssignment.bicep' = {
+  name: 'configurationReaderRoleAssignmentModule'
+  scope: resourceGroup(integrationResourceGroupName)
+  params: {
+    principalId: apiContainerApp.identity.principalId
+    roleDefinitionId: configurationDataReaderRole.id
+  }
+}
+module storageAccountDataReaderRoleAssignment 'roleAssignment.bicep' = {
+  name: 'storageAccountDataReaderRoleAssignmentModule'
+  scope: resourceGroup()
+  params: {
+    principalId: apiContainerApp.identity.principalId
+    roleDefinitionId: storageAccountDataContributorRole.id
+  }
+}
+module storageAccountDataReaderRoleAssignmentForDevelopers 'roleAssignment.bicep' = {
+  name: 'storageAccountDataReaderRoleAssignmentForDevelopersModule'
+  scope: resourceGroup()
+  params: {
+    principalId: developersGroup
+    roleDefinitionId: storageAccountDataContributorRole.id
+    principalType: 'Group'
   }
 }

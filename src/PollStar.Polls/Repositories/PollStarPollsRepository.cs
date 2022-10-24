@@ -5,6 +5,7 @@ using HexMaster.RedisCache.Abstractions;
 using Microsoft.Extensions.Options;
 using PollStar.Core;
 using PollStar.Core.Configuration;
+using PollStar.Core.Factories;
 using PollStar.Polls.Abstractions.DomainModels;
 using PollStar.Polls.Abstractions.Repositories;
 using PollStar.Polls.DomainModels;
@@ -14,7 +15,7 @@ namespace PollStar.Polls.Repositories;
 
 public class PollStarPollsRepository : IPollStarPollsRepository
 {
-    private readonly TableClient _tableClient;
+    private readonly IStorageTableClientFactory _tableStorageClientFactory;
     private const string TableName = "polls";
     private const string PartitionKey = "poll";
 
@@ -27,7 +28,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
 
     public async Task<IPoll?> GetActiveAsync(Guid sessionId)
     {
-        var pollsQuery = _tableClient
+        var pollsQuery = GetTableClient()
             .QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}' and {nameof(PollTableEntity.IsActive)} eq true");
         PollTableEntity activePollEntity = null;
         await foreach (var page in pollsQuery.AsPages())
@@ -91,12 +92,12 @@ public class PollStarPollsRepository : IPollStarPollsRepository
         {
             var actions = new List<TableTransactionAction>();
             var pollEntity = ToTableEntity(domainModel);
-            await _tableClient.AddEntityAsync(pollEntity);
+            await GetTableClient().AddEntityAsync(pollEntity);
             foreach (var option in domainModel.Options)
             {
                 actions.Add(new TableTransactionAction(TableTransactionActionType.Add, ToTableEntity(domainModel, option)));
             }
-            var response = await _tableClient.SubmitTransactionAsync(actions);
+            var response = await GetTableClient().SubmitTransactionAsync(actions);
 
             //await _cacheClient.InvalidateAsync($"polls:list:{domainModel.SessionId}");
             //await _cacheClient.InvalidateAsync($"polls:options:{domainModel.Id}");
@@ -115,7 +116,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
             if (domainModel.TrackingState == TrackingState.Modified)
             {
                 var pollEntity = ToTableEntity(domainModel);
-                await _tableClient.UpdateEntityAsync(pollEntity, ETag.All, TableUpdateMode.Replace);
+                await GetTableClient().UpdateEntityAsync(pollEntity, ETag.All, TableUpdateMode.Replace);
                 //await _cacheClient.InvalidateAsync($"polls:list:{domainModel.SessionId}");
                 //await _cacheClient.InvalidateAsync($"polls:details:{domainModel.Id}");
             }
@@ -154,13 +155,13 @@ public class PollStarPollsRepository : IPollStarPollsRepository
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var response = await _tableClient.DeleteEntityAsync(PartitionKey, id.ToString());
+        var response = await GetTableClient().DeleteEntityAsync(PartitionKey, id.ToString());
         return !response.IsError;
     }
 
     public async Task<bool> DeactivateAll(Guid sessionId)
     {
-        var pollsQuery = _tableClient.QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}' and {nameof(PollTableEntity.IsActive)} eq true");
+        var pollsQuery = GetTableClient().QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}' and {nameof(PollTableEntity.IsActive)} eq true");
         var actions = new List<TableTransactionAction>();
         await foreach (var page in pollsQuery.AsPages())
         {
@@ -173,7 +174,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
 
         if (actions.Count > 0)
         {
-            var response = await _tableClient.SubmitTransactionAsync(actions);
+            var response = await GetTableClient().SubmitTransactionAsync(actions);
             return response.Value.All(r => !r.IsError);
         }
 
@@ -183,7 +184,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
     private async Task<List<IPoll>> GetPollsBySessionIdAsync(Guid sessionId)
     {
         var polls = new List<IPoll>();
-        var pollsQuery = _tableClient.QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}'");
+        var pollsQuery = GetTableClient().QueryAsync<PollTableEntity>($"{nameof(PollTableEntity.PartitionKey)} eq '{PartitionKey}' and {nameof(PollTableEntity.SessionId)} eq '{sessionId}'");
         await foreach (var page in pollsQuery.AsPages())
         {
             polls.AddRange(page.Values.Select(po =>
@@ -202,7 +203,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
     private async Task<List<PollOptionTableEntity>> GetPollOptionsByPollIdAsync(Guid pollId)
     {
         var pollOptions = new List<PollOptionTableEntity>();
-        var pollOptionsQuery = _tableClient.QueryAsync<PollOptionTableEntity>($"{nameof(PollOptionTableEntity.PartitionKey)} eq '{pollId}'");
+        var pollOptionsQuery = GetTableClient().QueryAsync<PollOptionTableEntity>($"{nameof(PollOptionTableEntity.PartitionKey)} eq '{pollId}'");
         await foreach (var page in pollOptionsQuery.AsPages())
         {
             pollOptions.AddRange(page.Values);
@@ -211,7 +212,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
     }
     private async Task<PollTableEntity> GetPollDetailsByPollIdAsync(Guid pollId)
     {
-        var entity = await _tableClient.GetEntityAsync<PollTableEntity>(PartitionKey, pollId.ToString());
+        var entity = await GetTableClient().GetEntityAsync<PollTableEntity>(PartitionKey, pollId.ToString());
         return entity.Value;
     }
 
@@ -244,14 +245,13 @@ public class PollStarPollsRepository : IPollStarPollsRepository
         };
     }
 
-    public PollStarPollsRepository(IOptions<AzureConfiguration> options)
+    private TableClient GetTableClient()
     {
-        var accountName = options.Value.StorageAccount;
-        var accountKey = options.Value.StorageKey;
-        var storageUri = new Uri($"https://{accountName}.table.core.windows.net");
-        _tableClient = new TableClient(
-            storageUri,
-            TableName,
-            new TableSharedKeyCredential(accountName, accountKey));
+        return _tableStorageClientFactory.CreateClient(TableName);
+    }
+
+    public PollStarPollsRepository(IStorageTableClientFactory tableStorageClientFactory)
+    {
+        _tableStorageClientFactory = tableStorageClientFactory;
     }
 }
