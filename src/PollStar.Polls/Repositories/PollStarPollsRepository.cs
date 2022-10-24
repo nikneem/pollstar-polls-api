@@ -1,10 +1,6 @@
 ﻿using Azure;
 using Azure.Data.Tables;
 using HexMaster.DomainDrivenDesign.ChangeTracking;
-using HexMaster.RedisCache.Abstractions;
-using Microsoft.Extensions.Options;
-using PollStar.Core;
-using PollStar.Core.Configuration;
 using PollStar.Core.Factories;
 using PollStar.Polls.Abstractions.DomainModels;
 using PollStar.Polls.Abstractions.Repositories;
@@ -142,7 +138,7 @@ public class PollStarPollsRepository : IPollStarPollsRepository
 
             if (actions.Count > 0)
             {
-                var response = await _tableClient.SubmitTransactionAsync(actions);
+                var response = await GetTableClient().SubmitTransactionAsync(actions);
                 //await _cacheClient.InvalidateAsync($"polls:options:{domainModel.Id}");
                 return response.Value.All(r => !r.IsError);
             }
