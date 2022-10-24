@@ -16,7 +16,6 @@ param developersGroup string
 var integrationResourceGroupName = toLower('pollstar-int-${environmentName}-${locationAbbreviation}')
 var containerAppEnvironmentName = '${integrationResourceGroupName}-env'
 var azureAppConfigurationName = '${integrationResourceGroupName}-cfg'
-var azureIntegrationKeyVaultName = '${integrationResourceGroupName}-kv'
 
 var apiResourceGroupName = toLower('${systemName}-${environmentName}-${locationAbbreviation}')
 
@@ -42,6 +41,5 @@ module resourcesModule 'resources.bicep' = {
     environmentName: environmentName
     developersGroup: developersGroup
     azureAppConfigurationName: azureAppConfigurationName
-    azureIntegrationKeyVaultName: azureIntegrationKeyVaultName
   }
 }
