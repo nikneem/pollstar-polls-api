@@ -7,6 +7,7 @@ param integrationResourceGroupName string
 param containerAppEnvironmentResourceName string
 param azureAppConfigurationName string
 param developersGroup string
+param azureIntegrationKeyVaultName string
 
 param containerPort int = 80
 param containerAppName string = 'pollstar-polls-api'
@@ -24,6 +25,7 @@ resource containerAppEnvironments 'Microsoft.App/managedEnvironments@2022-03-01'
   name: containerAppEnvironmentResourceName
   scope: resourceGroup(integrationResourceGroupName)
 }
+
 resource appConfiguration 'Microsoft.AppConfiguration/configurationStores@2022-05-01' existing = {
   name: azureAppConfigurationName
   scope: resourceGroup(integrationResourceGroupName)
@@ -139,5 +141,13 @@ module storageAccountDataReaderRoleAssignmentForDevelopers 'roleAssignment.bicep
     principalId: developersGroup
     roleDefinitionId: storageAccountDataContributorRole.id
     principalType: 'Group'
+  }
+}
+module keyVaultAccessPolicies 'accessPolicies.bicep' = {
+  name: 'keyVaultAccessPoliciesModule'
+  scope: resourceGroup(integrationResourceGroupName)
+  params: {
+    keyVaultName: azureIntegrationKeyVaultName
+    principalId: apiContainerApp.identity.principalId
   }
 }
